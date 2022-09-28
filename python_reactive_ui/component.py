@@ -151,9 +151,17 @@ class Component:
                     self._remove_child(old)
 
     def receive_props(self, new_props: Props):
+        self._pre_receive_props(new_props)
         self._receive_props(new_props)
+        self._post_receive_props(new_props)
+
+    def _pre_receive_props(self, new_props: Props):
+        pass
 
     def _receive_props(self, new_props: Props):
+        pass
+
+    def _post_receive_props(self, new_props: Props):
         self._props = new_props
 
     def receive_children(self, new_children: Children):
@@ -175,11 +183,19 @@ class Component:
         assert dismounter is not None
         assert not self._is_mounted
         self._is_mounted = True
+        self._pre_mount()
         self._mount()
+        self._post_mount()
+
+    def _pre_mount(self):
+        pass
 
     def _mount(self):
         assert self._render_result is not None
         return self._render_result.mount(self._mounter, self._dismounter)
+
+    def _post_mount(self):
+        pass
 
     def dismount(self):
         assert self._is_mounted

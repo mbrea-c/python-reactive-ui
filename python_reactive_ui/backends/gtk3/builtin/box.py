@@ -12,18 +12,17 @@ from gi.repository import Gtk
 
 class Box(Gtk3BuiltinComponent):
     def __init__(self):
-        super().__init__()
-        self.gtk_widget = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
+        gtk_widget = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
+        super().__init__(gtk_widget)
 
     def _receive_props(self, new_props: Props):
+        super()._receive_props(new_props)
         self._update_orientation(
             new_props["orientation"] if "orientation" in new_props else "horizontal",
         )
         self.gtk_widget.set_spacing(
             new_props["spacing"] if "spacing" in new_props else 0
         )
-
-        self._props = new_props
 
     def _receive_children(self, new_children: Children):
         actions = self._compare_children(self._children, new_children)
@@ -40,9 +39,7 @@ class Box(Gtk3BuiltinComponent):
                 raise ValueError(f"orientation value of {other} is not supported")
 
     def _mount(self):
-        assert isinstance(self._props, Props)
         self._mounter(self.gtk_widget)
-        self.gtk_widget.show_all()
 
     def _dismount(self):
         self._dismounter(self.gtk_widget)

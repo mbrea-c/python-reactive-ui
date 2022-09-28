@@ -32,7 +32,7 @@ class Incremental(Component):
                 {"on_click": lambda _: set_counter(counter + 1)},
                 [create_element(Label, {"text": "+1"})],
             ),
-            create_element(Label, {"text": f"Counted {counter} clicks"}),
+            create_element(Label, {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]}),
             create_element(ProgressBar, {"fraction": counter / 50}),
         ]
 

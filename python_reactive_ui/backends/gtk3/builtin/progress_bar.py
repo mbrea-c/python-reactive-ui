@@ -11,18 +11,17 @@ from gi.repository import Gtk
 
 class ProgressBar(Gtk3BuiltinComponent):
     def __init__(self):
-        super().__init__()
-        self.gtk_widget = Gtk.ProgressBar.new()
+        gtk_widget = Gtk.ProgressBar.new()
+        super().__init__(gtk_widget)
 
     def _mount(self):
         self._mounter(self.gtk_widget)
-        self.gtk_widget.show_all()
 
     def _receive_props(self, new_props: Props):
+        super()._receive_props(new_props)
         self.gtk_widget.set_fraction(
             new_props["fraction"] if "fraction" in new_props else 0.5
         )
-        self._props = new_props
 
     def _receive_children(self, new_children: Children):
         pass

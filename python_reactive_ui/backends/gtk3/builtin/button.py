@@ -13,15 +13,15 @@ from gi.repository import Gtk
 
 class Button(Gtk3BuiltinComponent):
     def __init__(self):
-        super().__init__()
-        self.gtk_widget = Gtk.Button.new()
+        gtk_widget = Gtk.Button.new()
+        super().__init__(gtk_widget)
         self.signal_handlers = dict()
 
     def _receive_props(self, new_props: Props):
+        super()._receive_props(new_props)
         self._update_on_click(
             new_props["on_click"] if "on_click" in new_props else None
         )
-        self._props = new_props
 
     def _receive_children(self, new_children: Children):
         if len(new_children) > 1:
