@@ -1,43 +1,48 @@
-from gi.repository import Gtk
 from dataclasses import dataclass
-from pyact.backends.gtk3.render import GtkBuiltinComponent
-from pyact.component import Element, Props
+from pyact.backends.gtk3.render import Gtk3BuiltinComponent
+from pyact.component import Children, Component, Props
+from typing import List
+
+# fmt: off
 import gi
-
 gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+# fmt: on
 
 
-@dataclass
-class BoxProps(Props):
-    orientation: str = "horizontal"
-    spacing: int = 0
+class Box(Gtk3BuiltinComponent):
+    def __init__(self):
+        super().__init__()
+        self.gtk_widget = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
 
+    def _receive_props(self, new_props: Props):
+        self._update_orientation(
+            new_props["orientation"] if "orientation" in new_props else "horizontal",
+        )
+        self.gtk_widget.set_spacing(
+            new_props["spacing"] if "spacing" in new_props else 0
+        )
 
-class Box(GtkBuiltinComponent):
-    def _mount(self, element: Element):
-        self.gtk_box = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
-        assert isinstance(element.props, BoxProps)
-        self._receive_props(element, element.props, True)
-        self.mounter(self.gtk_box)
+        self._props = new_props
 
-    def _receive_props(self, element: Element, new_props: BoxProps, init: bool = False):
-        if init:
-            self._init_children(element, self.gtk_box.add, self.gtk_box.remove)
-        else:
-            self._update_children(
-                element, new_props.children, self.gtk_box.add, self.gtk_box.remove
-            )
-        self._update_orientation(element, new_props.orientation)
-        self.gtk_box.set_spacing(new_props.spacing)
+    def _receive_children(self, new_children: Children):
+        actions = self._compare_children(self._children, new_children)
+        self._perform_actions(actions, self.gtk_widget.add, self.gtk_widget.remove)
+        self.gtk_widget.show_all()
 
-    def _update_orientation(self, element: Element, orientation: str):
+    def _update_orientation(self, orientation: str):
         match orientation:
             case "horizontal":
-                self.gtk_box.set_orientation(Gtk.Orientation.HORIZONTAL)
+                self.gtk_widget.set_orientation(Gtk.Orientation.HORIZONTAL)
             case "vertical":
-                self.gtk_box.set_orientation(Gtk.Orientation.VERTICAL)
+                self.gtk_widget.set_orientation(Gtk.Orientation.VERTICAL)
             case other:
                 raise ValueError(f"orientation value of {other} is not supported")
 
-    def _dismount(self, element):
-        self.dismounter(self.gtk_box)
+    def _mount(self):
+        assert isinstance(self._props, Props)
+        self._mounter(self.gtk_widget)
+        self.gtk_widget.show_all()
+
+    def _dismount(self):
+        self._dismounter(self.gtk_widget)

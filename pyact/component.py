@@ -1,220 +1,271 @@
+from enum import Enum, auto
 import logging
-from typing import Callable, Dict, List, Optional
-from dataclasses import dataclass, field
+from typing import Callable, Dict, List, Optional, Tuple
 from itertools import zip_longest
 import inspect
 
 
-@dataclass
-class Props:
-    children: List["Element"] = field(default_factory=list)
-
-    def __repr__(self):
-        return f"children={self.children}"
+class Root:
+    def render(self, component: "Component"):
+        raise NotImplementedError()
 
 
-class Element:
-    def __init__(self, component: "Component", props: Props):
-        self.component: "Component" = component
-        self.props: Props = props
-        self.state: Dict = dict()
-        self.state_counter = 0
-        self.render_result: Optional[Element] = None
+Props = Dict
+Children = List["Component"]
 
-    def __eq__(self, other: "Element"):
-        return (
-            self.component == other.component
-            and self.props == other.props
-            and self.state == other.state
-            and self.render_result == other.render_result
-        )
+
+class ActionType(Enum):
+    SWAP = auto()
+    MOUNT = auto()
+    DISMOUNT = auto()
+    UPDATE = auto()
+    ADD_CHILD = auto()
+    REMOVE_CHILD = auto()
+
+
+Action = Tuple[ActionType, Tuple]
+Actions = List[Action]
+
+
+class Component:
+    def __init__(self):
+        self._children: Children = []
+        self._props: Props = dict()
+        self._render_result: Optional["Component"] = None
+        self._render_parent: Optional["Component"] = None
+
+        # State
+        self._state: Dict = dict()
+        self._state_counter = 0
+
+        # Other
+        self._print_on_render = False
+        self._is_mounted = False
+
+    def __eq__(self, other):
+        return self is other
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     def __str__(self):
-        return f"<{type(self.component).__name__}>"
+        return f"<{type(self).__name__}>"
 
+    def render(self) -> "Component":
+        if self._print_on_render:
+            print_tree(self)
+        self._state_counter = 0
+        result = self._render(self._props, self._children)
+        result._render_parent = self
+        return result
 
-class Root:
-    def render(self, element: Element):
+    def _render(self, props: Props, children: Children) -> "Component":
         raise NotImplementedError()
 
-
-FunctionalComponent = Callable[[Element, Props], Element]
-
-# Steps in lifecycle:
-# 1. Render component tree
-# 2. Determine diff actions
-# 3. Execute dismounts
-# 4. Exectue mounts
-# 5. Execute receive_props
-
-
-class Component:
-    def __init__(self):
-        pass
-
-    def __eq__(self, other):
-        return type(self) == type(other)
-
-    def render(self, element: Element, props: Props) -> Element:
-        raise NotImplementedError()
+    def _render_close(self):
+        if not isinstance(self, BuiltinComponent):
+            self._render_result = self.render()
+            self._render_result._render_close()
 
     def trigger_rerender(
-        self, element, mounter=Optional[Callable], dismounter=Optional[Callable]
+        self, mounter=Optional[Callable], dismounter=Optional[Callable]
     ):
-        mounter = mounter if (mounter is not None) else self.mounter
-        dismounter = dismounter if (dismounter is not None) else self.dismounter
+        mounter = mounter if (mounter is not None) else self._mounter
+        dismounter = dismounter if (dismounter is not None) else self._dismounter
 
-        if not isinstance(element.component, BuiltinComponent):
-            new_element = self.render(element, element.props)
-            self._compare_child(
-                element.render_result, new_element, mounter, dismounter, parent=element
-            )  # type: ignore
+        if not isinstance(self, BuiltinComponent):
+            new_element = self.render()
+            actions = self._compare(self._render_result, new_element)
+            self._perform_actions(actions, mounter, dismounter)  # type: ignore
 
-    def _update_children(
+    def _compare_children(
         self,
-        element: Element,
-        new_children: List[Element],
-        mounter: Callable,
-        dismounter: Callable,
-    ):
-        for old, new in zip_longest(
-            element.props.children,
-            new_children,
-        ):
-            self._compare_child(old, new, mounter, dismounter)
+        old_children: List["Component"],
+        new_children: List["Component"],
+    ) -> Actions:
+        actions = []
+        for i, (old, new) in enumerate(zip_longest(old_children, new_children)):
+            curr_actions = self._compare(old, new)
+            if len(curr_actions) == 1:
+                [action] = curr_actions
+                match action:
+                    case (ActionType.MOUNT, (new,)):
+                        actions.extend([action, (ActionType.ADD_CHILD, (new,))])
+                    case (ActionType.DISMOUNT, (old,)):
+                        actions.extend([action, (ActionType.REMOVE_CHILD, (old,))])
+                    case (ActionType.SWAP, (old, new)):
+                        actions.extend([action, (ActionType.ADD_CHILD, (old, i))])
+                    case other:
+                        actions.append(other)
+        return actions
 
-    def _init_children(self, element: Element, mounter: Callable, dismounter: Callable):
-        for child in element.props.children:
-            child.component.mount(child, mounter, dismounter)
-
-    def _compare_child(
+    def _compare(
         self,
-        old_element: Optional[Element],
-        new_element: Optional[Element],
-        mounter: Callable,
-        dismounter: Callable,
-        parent: Optional[Element] = None,
-    ):
-        if new_element is not None:
-            if old_element is None or not type(old_element.component) == type(
-                new_element.component
-            ):
-                logging.info(f"Replacing {old_element} with {new_element}")
-                if old_element:
-                    old_element.component.dismount(old_element)
-                if parent:
-                    parent.render_result = new_element
-                new_element.component.mount(new_element, mounter, dismounter)
-            elif old_element.props != new_element.props:
-                logging.info(f"Sending props to {old_element}")
-                old_element.component.receive_props(old_element, new_element.props)
-                old_element.component.trigger_rerender(old_element)
+        old: Optional["Component"],
+        new: Optional["Component"],
+    ) -> Actions:
+        if new is not None:
+            if old is None:
+                return [(ActionType.MOUNT, (new,))]
+
+            elif not type(old) == type(new):
+                return [(ActionType.SWAP, (old, new))]
             else:
-                logging.info(f"Re-rendering {old_element}")
-                old_element.component.trigger_rerender(old_element)
+                if old._props != new._props:
+                    return [(ActionType.UPDATE, (old, new))]
+                if len(self._compare_children(old._children, new._children)) > 0:
+                    return [(ActionType.UPDATE, (old, new))]
         else:
-            if old_element is not None:
-                old_element.component.dismount(old_element)
+            if old is not None:
+                return [(ActionType.DISMOUNT, (old,))]
+        return []
+
+    def _perform_actions(
+        self, actions: Actions, mounter: Callable, dismounter: Callable
+    ):
+        for action in actions:
+            match action:
+                case (ActionType.MOUNT, (new,)):
+                    if new._is_mounted:
+                        new.dismount()
+                    new.mount(mounter, dismounter)
+                case (ActionType.DISMOUNT, (old,)):
+                    old.dismount()
+                case (ActionType.SWAP, (old, new)):
+                    if old._render_parent is not None:
+                        assert old._render_parent._render_child is old
+                        assert new._render_parent is not None
+                        assert new._render_parent is old._render_parent
+                        old._render_parent._render_child = new
+                    old.dismount()
+                    new.mount(mounter, dismounter)
+                case (ActionType.UPDATE, (old, new)):
+                    old.receive_props(new._props)
+                    old.receive_children(new._children)
+                    old.trigger_rerender()
+                case (ActionType.ADD_CHILD, (new,)):
+                    self._add_child(new)
+                case (ActionType.ADD_CHILD, (new, i)):
+                    self._add_child(new, i)
+                case (ActionType.REMOVE_CHILD, (old,)):
+                    self._remove_child(old)
+
+    def receive_props(self, new_props: Props):
+        self._receive_props(new_props)
+
+    def _receive_props(self, new_props: Props):
+        self._props = new_props
+
+    def receive_children(self, new_children: Children):
+        self._receive_children(new_children)
+
+    def _receive_children(self, new_children: Children):
+        self._children = new_children
 
     def mount(
         self,
-        element: Element,
         mounter: Optional[Callable] = None,
         dismounter: Optional[Callable] = None,
     ):
         if mounter is not None:
-            self.mounter = mounter
+            self._mounter = mounter
         if dismounter is not None:
-            self.dismounter = dismounter
-        assert mounter is not None and dismounter is not None
-        logging.info(f"Mounting {element}")
-        self._mount(element)
+            self._dismounter = dismounter
+        assert mounter is not None
+        assert dismounter is not None
+        assert not self._is_mounted
+        self._is_mounted = True
+        self._mount()
 
-    def _mount(self, element):
-        assert element.render_result is not None
-        return element.render_result.component.mount(
-            element.render_result, self.mounter, self.dismounter
-        )
+    def _mount(self):
+        assert self._render_result is not None
+        return self._render_result.mount(self._mounter, self._dismounter)
 
-    def receive_props(self, element: Element, new_props: Props):
-        self._receive_props(element, new_props)
+    def dismount(self):
+        assert self._is_mounted
+        assert self._dismounter is not None
+        self._is_mounted = False
+        self._dismount()
 
-    def _receive_props(self, element: Element, new_props: Props):
-        element.props = new_props
+    def _dismount(self):
+        assert self._render_result is not None
+        return self._render_result.dismount()
 
-    def dismount(self, element: Element):
-        assert self.dismounter is not None
-        logging.info(f"Dismounting {element}")
-        self._dismount(element)
+    def _add_child(self, child: "Component", index: Optional[int] = None):
+        if index is not None and len(self._children) > index:
+            self._children[index] = child
+        else:
+            self._children.append(child)
 
-    def _dismount(self, element: Element):
-        assert element.render_result is not None
-        return element.render_result.component.dismount(element.render_result)
-
-
-class _BaseComponent(Component):
-    def __init__(self, fc: FunctionalComponent):
-        self.fc = fc
-
-    def render(self, element: Element, props: Props) -> Element:
-        element.state_counter = 0
-        return self.fc(element, props)
-
-    def __eq__(self, other):
-        return self.fc == other.fc
+    def _remove_child(self, child: "Component"):
+        self._children.remove(child)
 
 
 class BuiltinComponent(Component):
-    def _mount(self, element: Element):
+    def _mount(self):
         raise NotImplementedError()
 
-    def _receive_props(self, element: Element, new_props: Props):
+    def _receive_props(self, new_props: Props):
         raise NotImplementedError()
 
-    def _dismount(self, element: Element):
+    def _receive_children(self, new_children: Children):
+        raise NotImplementedError()
+
+    def _dismount(self):
         raise NotImplementedError()
 
 
-def createElement(component, props, children: Optional[List[Element]] = None):
-    children = children if (children is not None) else []
-    props.children = children
+def create_element(
+    component,
+    props: Props,
+    children: Optional[Children] = None,
+) -> Component:
+    if not (inspect.isclass(component) and issubclass(component, Component)):
+        raise ValueError("`component` argument should be a subclass of `Component`")
 
-    if inspect.isclass(component):
-        component = component()
-    else:
-        component = _BaseComponent(component)
+    instance = component()
 
-    element = Element(component, props)
-    repopulate_elem_tree(element)
-    return element
+    _children: Children = [] if children is None else children
+    instance.receive_props(props)
+    instance.receive_children(_children)
+    instance._render_close()
+    return instance
 
 
-def use_state(element: Element, initial_value=None):
-    counter = element.state_counter
+def use_state(component: Component, initial_value=None):
+    counter = component._state_counter
 
     def set_func(new_value):
-        element.state[counter] = new_value
-        element.component.trigger_rerender(element)
+        component._state[counter] = new_value
+        component.trigger_rerender()
 
-    if element.state_counter not in element.state:
-        element.state[element.state_counter] = initial_value
-    elem = element.state[element.state_counter]
-    element.state_counter += 1
+    if component._state_counter not in component._state:
+        component._state[component._state_counter] = initial_value
+    elem = component._state[component._state_counter]
+    component._state_counter += 1
     return elem, set_func
 
 
-def repopulate_elem_tree(element: Element):
-    if not isinstance(element.component, BuiltinComponent):
-        element.render_result = element.component.render(element, element.props)
-        repopulate_elem_tree(element.render_result)
+def _print_actions(actions):
+    ss = "[\n"
+    for action in actions:
+        (action_type, stuff) = action
+        s = f"({str(action_type)}"
+        for a in stuff:
+            s += f", {a}"
+        s += ")"
+        ss += f"\t{s}\n"
+    ss += "]"
+    return ss
 
 
-def print_tree(element: Element, depth=0):
-    print(" " * depth + f"{element}")
-    for child in element.props.children:
-        print_tree(child, depth=depth + 1)
-    if element.render_result:
-        print_tree(element.render_result, depth=depth + 1)
+def print_tree(component: Component, depth=0):
+    print("| " * depth + f"{component}")
+    if not isinstance(component, BuiltinComponent):
+        print("| " * depth + "|" + f"Renders:")
+        if component._render_result:
+            print_tree(component._render_result, depth=depth + 1)
+    if len(component._children) > 0:
+        print("| " * depth + "|" + f"Children:")
+        for child in component._children:
+            print_tree(child, depth=depth + 1)

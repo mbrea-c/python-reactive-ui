@@ -1,12 +1,14 @@
 from pyact.component import (
     BuiltinComponent,
-    Element,
+    Component,
     Root,
 )
-import gi
 
+# fmt: off
+import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
+# fmt: on
 
 
 class Gtk3Root(Root):
@@ -14,13 +16,13 @@ class Gtk3Root(Root):
         self.root = root
         self.tree = None
 
-    def render(self, element: Element):
-        element.component.mount(element, self.root.add, self.root.remove)
+    def render(self, component: Component):
+        component.mount(self.root.add, self.root.remove)
         self.root.show_all()
         Gtk.main()
 
 
-class GtkBuiltinComponent(BuiltinComponent):
+class Gtk3BuiltinComponent(BuiltinComponent):
     pass
 
 
