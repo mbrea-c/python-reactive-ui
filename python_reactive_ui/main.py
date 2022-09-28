@@ -1,11 +1,11 @@
 import logging
 import logging.handlers
-from pyact.backends.gtk3 import create_root
-from pyact.backends.gtk3.builtin.box import Box
-from pyact.backends.gtk3.builtin.label import Label
-from pyact.backends.gtk3.builtin.button import Button
-from pyact.backends.gtk3.builtin.progress_bar import ProgressBar
-from pyact.component import (
+from python_reactive_ui.backends.gtk3.render import create_root
+from python_reactive_ui.backends.gtk3.builtin.box import Box
+from python_reactive_ui.backends.gtk3.builtin.label import Label
+from python_reactive_ui.backends.gtk3.builtin.button import Button
+from python_reactive_ui.backends.gtk3.builtin.progress_bar import ProgressBar
+from python_reactive_ui.component import (
     Children,
     Props,
     create_element,

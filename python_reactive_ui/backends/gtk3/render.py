@@ -1,4 +1,4 @@
-from pyact.component import (
+from python_reactive_ui.component import (
     BuiltinComponent,
     Component,
     Root,

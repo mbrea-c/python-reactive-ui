@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 import logging
 from typing import Callable, Optional, Tuple, List
-from pyact.backends.gtk3.render import Gtk3BuiltinComponent
-from pyact.component import Children, Props
+from python_reactive_ui.backends.gtk3.render import Gtk3BuiltinComponent
+from python_reactive_ui.component import Children, Props
 
 # fmt: off
 import gi
