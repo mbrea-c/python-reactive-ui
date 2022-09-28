@@ -3,6 +3,7 @@ name = "pyact"
 version = "0.1.0"
 description = ""
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
+readme = "README.md"
 
 [tool.poetry.scripts]
 example = "pyact.main:test"
