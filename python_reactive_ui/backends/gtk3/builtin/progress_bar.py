@@ -1,6 +1,5 @@
-from dataclasses import dataclass
-from python_reactive_ui.backends.gtk3.render import Gtk3BuiltinComponent
-from python_reactive_ui.component import Children, Props
+from python_reactive_ui.backends.gtk3.builtin_component import Gtk3BuiltinComponent
+from python_reactive_ui import Children, Props
 
 # fmt: off
 import gi

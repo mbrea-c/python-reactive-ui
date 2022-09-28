@@ -1,19 +1,17 @@
 import logging
 import logging.handlers
-from python_reactive_ui.backends.gtk3.render import create_root
-from python_reactive_ui.backends.gtk3.builtin.box import Box
-from python_reactive_ui.backends.gtk3.builtin.label import Label
-from python_reactive_ui.backends.gtk3.builtin.button import Button
-from python_reactive_ui.backends.gtk3.builtin.progress_bar import ProgressBar
-from python_reactive_ui.component import (
+from python_reactive_ui.backends.gtk3 import create_root
+from python_reactive_ui.backends.gtk3.builtin import Box
+from python_reactive_ui.backends.gtk3.builtin import Label
+from python_reactive_ui.backends.gtk3.builtin import Button
+from python_reactive_ui.backends.gtk3.builtin import ProgressBar
+from python_reactive_ui import (
     Children,
     Props,
     create_element,
-    print_tree,
     use_state,
     Component,
 )
-from typing import List
 
 # fmt: off
 import gi
@@ -32,7 +30,10 @@ class Incremental(Component):
                 {"on_click": lambda _: set_counter(counter + 1)},
                 [create_element(Label, {"text": "+1"})],
             ),
-            create_element(Label, {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]}),
+            create_element(
+                Label,
+                {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]},
+            ),
             create_element(ProgressBar, {"fraction": counter / 50}),
         ]
 

@@ -1,5 +1,4 @@
 from enum import Enum, auto
-import logging
 from typing import Callable, Dict, List, Optional, Tuple
 from itertools import zip_longest
 import inspect
@@ -248,21 +247,7 @@ def create_element(
     return instance
 
 
-def use_state(component: Component, initial_value=None):
-    counter = component._state_counter
-
-    def set_func(new_value):
-        component._state[counter] = new_value
-        component.trigger_rerender()
-
-    if component._state_counter not in component._state:
-        component._state[component._state_counter] = initial_value
-    elem = component._state[component._state_counter]
-    component._state_counter += 1
-    return elem, set_func
-
-
-def _print_actions(actions):
+def print_actions(actions):
     ss = "[\n"
     for action in actions:
         (action_type, stuff) = action

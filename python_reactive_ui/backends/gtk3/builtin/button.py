@@ -1,8 +1,6 @@
-from dataclasses import dataclass
-import logging
-from typing import Callable, Optional, Tuple, List
-from python_reactive_ui.backends.gtk3.render import Gtk3BuiltinComponent
-from python_reactive_ui.component import Children, Props
+from typing import Callable, Optional
+from python_reactive_ui.backends.gtk3.builtin_component import Gtk3BuiltinComponent
+from python_reactive_ui import Children, Props
 
 # fmt: off
 import gi
