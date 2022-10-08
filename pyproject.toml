@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "python-reactive-ui"
-version = "0.1.1"
+version = "0.1.2"
 description = ""
 authors = ["Manuel Brea <m.brea.carreras@gmail.com>"]
 readme = "README.md"

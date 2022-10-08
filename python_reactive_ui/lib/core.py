@@ -27,12 +27,7 @@ Actions = List[Action]
 
 
 class Component:
-    def __init__(
-        self,
-        props: Props,
-        children: Optional[Children] = None,
-        **kwargs
-    ):
+    def __init__(self, props: Props, children: Optional[Children] = None, **kwargs):
         self._pre_init(**kwargs)
         self._init_empty()
         self._init_params(props, children)
@@ -53,6 +48,10 @@ class Component:
         # State
         self._state: Dict = dict()
         self._state_counter = 0
+
+        # Effects
+        self._effects: Dict = dict()
+        self._effect_counter = 0
 
         # Other
         self._print_on_render = False
@@ -81,6 +80,7 @@ class Component:
         if self._print_on_render:
             print_tree(self)
         self._state_counter = 0
+        self._effect_counter = 0
         result = self._render(self._props, self._children)
         result._render_parent = self
         return result

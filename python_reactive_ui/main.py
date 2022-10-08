@@ -16,6 +16,8 @@ from python_reactive_ui import (
 # fmt: off
 import gi
 
+from python_reactive_ui.lib.hooks import use_effect
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 # fmt: on
@@ -26,6 +28,7 @@ testlabel = Gtk.Label.new("blackbox")
 class Incremental(Component):
     def _render(self, props: Props, children: Children):
         counter, set_counter = use_state(self, 0)
+        use_effect(self, lambda: print("Ayoooo"), [counter % 5 == 0])
 
         box_children = [
             Button(
@@ -36,7 +39,7 @@ class Incremental(Component):
                 {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]},
             ),
             ProgressBar({"fraction": counter / 50}),
-            BlackBox({}, widget=testlabel),
+            # BlackBox({}, widget=testlabel),
         ]
 
         if counter > 5 and counter < 10:
@@ -50,7 +53,7 @@ def test():
     setup_logging()
     root = create_root(Gtk.Window.new(Gtk.WindowType.TOPLEVEL))
     elem = Incremental(dict())
-    elem._print_on_render = True
+    # elem._print_on_render = True
     root.render(elem)
     Gtk.main()
 
