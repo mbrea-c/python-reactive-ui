@@ -5,49 +5,50 @@ from python_reactive_ui.backends.gtk3.builtin import Box
 from python_reactive_ui.backends.gtk3.builtin import Label
 from python_reactive_ui.backends.gtk3.builtin import Button
 from python_reactive_ui.backends.gtk3.builtin import ProgressBar
+from python_reactive_ui.backends.gtk3.builtin.blackbox import BlackBox
 from python_reactive_ui import (
     Children,
     Props,
-    create_element,
     use_state,
     Component,
 )
 
 # fmt: off
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 # fmt: on
 
+testlabel = Gtk.Label.new("blackbox")
 
 class Incremental(Component):
     def _render(self, props: Props, children: Children):
         counter, set_counter = use_state(self, 0)
 
         box_children = [
-            create_element(
-                Button,
+            Button(
                 {"on_click": lambda _: set_counter(counter + 1)},
-                [create_element(Label, {"text": "+1"})],
+                [Label({"text": "+1"})],
             ),
-            create_element(
-                Label,
+            Label(
                 {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]},
             ),
-            create_element(ProgressBar, {"fraction": counter / 50}),
+            ProgressBar({"fraction": counter / 50}),
+            BlackBox({}, widget=testlabel)
         ]
 
         if counter > 5 and counter < 10:
-            box_children.append(create_element(Label, {"text": f"Loads of clicks!"}))
+            box_children.append(Label({"text": f"Loads of clicks!"}))
 
-        elem = create_element(Box, {"orientation": "vertical"}, box_children)
+        elem = Box({"orientation": "vertical"}, box_children)
         return elem
 
 
 def test():
     setup_logging()
     root = create_root(Gtk.Window.new(Gtk.WindowType.TOPLEVEL))
-    elem = create_element(Incremental, dict())
+    elem = Incremental(dict())
     elem._print_on_render = True
     root.render(elem)
 

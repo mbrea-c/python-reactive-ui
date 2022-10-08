@@ -1,5 +1,6 @@
+from typing import Optional
 from python_reactive_ui import Props
-from python_reactive_ui.lib.core import BuiltinComponent
+from python_reactive_ui.lib.core import BuiltinComponent, Children
 
 # fmt: off
 import gi
@@ -9,8 +10,7 @@ from gi.repository import Gtk
 
 
 class Gtk3BuiltinComponent(BuiltinComponent):
-    def __init__(self, gtk_widget: Gtk.Widget):
-        super().__init__()
+    def _set_widget(self, gtk_widget: Gtk.Widget):
         self.gtk_widget = gtk_widget
 
     def _post_mount(self):

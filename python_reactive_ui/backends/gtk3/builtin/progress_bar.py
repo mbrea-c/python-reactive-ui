@@ -9,9 +9,8 @@ from gi.repository import Gtk
 
 
 class ProgressBar(Gtk3BuiltinComponent):
-    def __init__(self):
-        gtk_widget = Gtk.ProgressBar.new()
-        super().__init__(gtk_widget)
+    def _pre_init(self):
+        self._set_widget(Gtk.ProgressBar.new())
 
     def _mount(self):
         self._mounter(self.gtk_widget)

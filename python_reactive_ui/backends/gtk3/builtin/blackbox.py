@@ -8,13 +8,12 @@ from gi.repository import Gtk
 # fmt: on
 
 
-class Label(Gtk3BuiltinComponent):
-    def _pre_init(self):
-        self._set_widget(Gtk.Label.new(""))
+class BlackBox(Gtk3BuiltinComponent):
+    def _pre_init(self, widget: Gtk.Widget):
+        self._set_widget(widget)
 
     def _receive_props(self, new_props: Props):
         super()._receive_props(new_props)
-        self.gtk_widget.set_text(new_props["text"] if "text" in new_props else "")
 
     def _receive_children(self, _: Children):
         pass

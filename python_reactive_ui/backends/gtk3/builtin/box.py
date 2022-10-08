@@ -9,9 +9,8 @@ from gi.repository import Gtk
 
 
 class Box(Gtk3BuiltinComponent):
-    def __init__(self):
-        gtk_widget = Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0)
-        super().__init__(gtk_widget)
+    def _pre_init(self):
+        self._set_widget(Gtk.Box.new(Gtk.Orientation.HORIZONTAL, 0))
 
     def _receive_props(self, new_props: Props):
         super()._receive_props(new_props)

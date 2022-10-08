@@ -10,9 +10,8 @@ from gi.repository import Gtk
 
 
 class Button(Gtk3BuiltinComponent):
-    def __init__(self):
-        gtk_widget = Gtk.Button.new()
-        super().__init__(gtk_widget)
+    def _pre_init(self):
+        self._set_widget(Gtk.Button.new())
         self.signal_handlers = dict()
 
     def _receive_props(self, new_props: Props):

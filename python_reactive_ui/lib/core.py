@@ -27,7 +27,24 @@ Actions = List[Action]
 
 
 class Component:
-    def __init__(self):
+    def __init__(
+        self,
+        props: Props,
+        children: Optional[Children] = None,
+        **kwargs
+    ):
+        self._pre_init(**kwargs)
+        self._init_empty()
+        self._init_params(props, children)
+        self._post_init(**kwargs)
+
+    def _pre_init(self, **kwargs):
+        pass
+
+    def _post_init(self, **kwargs):
+        pass
+
+    def _init_empty(self):
         self._children: Children = []
         self._props: Props = dict()
         self._render_result: Optional["Component"] = None
@@ -40,6 +57,16 @@ class Component:
         # Other
         self._print_on_render = False
         self._is_mounted = False
+
+    def _init_params(
+        self,
+        props: Props,
+        children: Optional[Children] = None,
+    ):
+        _children: Children = [] if children is None else children
+        self.receive_props(props)
+        self.receive_children(_children)
+        self._render_close()
 
     def __eq__(self, other):
         return self is other
@@ -228,23 +255,6 @@ class BuiltinComponent(Component):
 
     def _dismount(self):
         raise NotImplementedError()
-
-
-def create_element(
-    component,
-    props: Props,
-    children: Optional[Children] = None,
-) -> Component:
-    if not (inspect.isclass(component) and issubclass(component, Component)):
-        raise ValueError("`component` argument should be a subclass of `Component`")
-
-    instance = component()
-
-    _children: Children = [] if children is None else children
-    instance.receive_props(props)
-    instance.receive_children(_children)
-    instance._render_close()
-    return instance
 
 
 def print_actions(actions):
