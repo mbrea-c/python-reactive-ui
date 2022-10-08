@@ -16,7 +16,6 @@ class Gtk3Root(Root):
     def render(self, component: Component):
         component.mount(self.root.add, self.root.remove)
         self.root.show_all()
-        Gtk.main()
 
 
 def create_root(root):

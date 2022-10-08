@@ -22,6 +22,7 @@ from gi.repository import Gtk
 
 testlabel = Gtk.Label.new("blackbox")
 
+
 class Incremental(Component):
     def _render(self, props: Props, children: Children):
         counter, set_counter = use_state(self, 0)
@@ -35,7 +36,7 @@ class Incremental(Component):
                 {"text": f"Counted {counter} clicks", "css_classes": ["test-class"]},
             ),
             ProgressBar({"fraction": counter / 50}),
-            BlackBox({}, widget=testlabel)
+            BlackBox({}, widget=testlabel),
         ]
 
         if counter > 5 and counter < 10:
@@ -51,6 +52,7 @@ def test():
     elem = Incremental(dict())
     elem._print_on_render = True
     root.render(elem)
+    Gtk.main()
 
 
 def setup_logging():
