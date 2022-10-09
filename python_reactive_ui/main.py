@@ -28,11 +28,11 @@ testlabel = Gtk.Label.new("blackbox")
 class Incremental(Component):
     def _render(self, props: Props, children: Children):
         counter, set_counter = use_state(self, 0)
-        use_effect(self, lambda: print("Ayoooo"), [counter % 5 == 0])
+        use_effect(self, lambda: print("Ayoooo"), [])
 
         box_children = [
             Button(
-                {"on_click": lambda _: set_counter(counter + 1)},
+                {"on_click": lambda _: set_counter(counter + 1), "vexpand": counter % 2 == True},
                 [Label({"text": "+1"})],
             ),
             Label(
