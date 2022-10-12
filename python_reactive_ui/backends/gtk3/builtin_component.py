@@ -38,19 +38,32 @@ class Gtk3BuiltinComponent(BuiltinComponent):
         elif self._prop_removed(new_props, prop_name):
             updater(prop_mapper(default))
 
-    def _receive_props(self, new_props: Props):
-        if "css_classes" in new_props:
-            new_classes = new_props["css_classes"]
-            style_context = self.gtk_widget.get_style_context()
-            old_classes = style_context.list_classes()
+    def _update_list_prop(
+        self,
+        new_props: Props,
+        prop_name: str,
+        adder,
+        remover,
+        prop_mapper: Callable = lambda x: x,
+    ):
+        new_list = new_props[prop_name] if prop_name in new_props else []
+        old_list = self._props[prop_name] if prop_name in self._props else []
+        for item in new_list:
+            if item not in old_list:
+                adder(item)
+        for item in old_list:
+            if item not in new_list:
+                remover(item)
 
-            for css_class in new_classes:
-                if css_class not in old_classes:
-                    style_context.add_class(css_class)
-            for css_class in old_classes:
-                if css_class not in new_classes:
-                    print(f"Removing class: {self}, {css_class}")
-                    style_context.remove_class(css_class)
+    def _receive_props(self, new_props: Props):
+        # List props
+        style_context = self.gtk_widget.get_style_context()
+        self._update_list_prop(
+            new_props,
+            "css_classes",
+            style_context.add_class,
+            style_context.remove_class,
+        )
 
         # Simple props
         self._update_prop_with_default(
