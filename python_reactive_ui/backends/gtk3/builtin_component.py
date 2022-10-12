@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Callable, Optional
 from python_reactive_ui import Props
 from python_reactive_ui.lib.core import BuiltinComponent, Children
 
@@ -16,6 +16,28 @@ class Gtk3BuiltinComponent(BuiltinComponent):
     def _post_mount(self):
         self.gtk_widget.show_all()
 
+    def _prop_has_new_value(self, new_props: Props, prop_name: str):
+        return prop_name in new_props and (
+            prop_name not in self._props
+            or self._props[prop_name] != new_props[prop_name]
+        )
+
+    def _prop_removed(self, new_props: Props, prop_name: str):
+        return prop_name not in new_props and prop_name in self._props
+
+    def _update_prop_with_default(
+        self,
+        new_props: Props,
+        prop_name: str,
+        default,
+        updater,
+        prop_mapper: Callable = lambda x: x,
+    ):
+        if self._prop_has_new_value(new_props, prop_name):
+            updater(prop_mapper(new_props[prop_name]))
+        elif self._prop_removed(new_props, prop_name):
+            updater(prop_mapper(default))
+
     def _receive_props(self, new_props: Props):
         if "css_classes" in new_props:
             new_classes = new_props["css_classes"]
@@ -29,30 +51,63 @@ class Gtk3BuiltinComponent(BuiltinComponent):
                 if css_class not in new_classes:
                     print(f"Removing class: {self}, {css_class}")
                     style_context.remove_class(css_class)
-        if "hexpand" in new_props:
-            if (
-                "hexpand" not in self._props
-                or self._props["hexpand"] != new_props["hexpand"]
-            ):
-                self.gtk_widget.set_hexpand(new_props["hexpand"])
-        if "vexpand" in new_props:
-            if (
-                "vexpand" not in self._props
-                or self._props["vexpand"] != new_props["vexpand"]
-            ):
-                self.gtk_widget.set_vexpand(new_props["vexpand"])
-        if "halign" in new_props:
-            if (
-                "halign" not in self._props
-                or self._props["halign"] != new_props["halign"]
-            ):
-                self.gtk_widget.set_halign(self._get_align_enum(new_props["halign"]))
-        if "valign" in new_props:
-            if (
-                "valign" not in self._props
-                or self._props["valign"] != new_props["valign"]
-            ):
-                self.gtk_widget.set_valign(self._get_align_enum(new_props["valign"]))
+
+        # Simple props
+        self._update_prop_with_default(
+            new_props, "hexpand", False, self.gtk_widget.set_hexpand
+        )
+        self._update_prop_with_default(
+            new_props, "vexpand", False, self.gtk_widget.set_vexpand
+        )
+        self._update_prop_with_default(
+            new_props, "sensitive", True, self.gtk_widget.set_sensitive
+        )
+        self._update_prop_with_default(
+            new_props, "opacity", 1.0, self.gtk_widget.set_opacity
+        )
+        self._update_prop_with_default(
+            new_props,
+            "halign",
+            "fill",
+            self.gtk_widget.set_halign,
+            self._get_align_enum,
+        )
+        self._update_prop_with_default(
+            new_props,
+            "valign",
+            "fill",
+            self.gtk_widget.set_valign,
+            self._get_align_enum,
+        )
+        self._update_prop_with_default(
+            new_props, "tooltip_text", None, self.gtk_widget.set_tooltip_text
+        )
+        self._update_prop_with_default(
+            new_props,
+            "size_request",
+            (-1, -1),
+            lambda sr: self.gtk_widget.set_size_request(*sr),
+        )
+        if isinstance(self.gtk_widget, Gtk.Orientable):
+            self._receive_orientable_props(new_props)
+
+    def _receive_orientable_props(self, new_props):
+        self._update_prop_with_default(
+            new_props,
+            "orientation",
+            "horizontal",
+            self.gtk_widget.set_orientation,
+            self._get_orientation_enum,
+        )
+
+    def _get_orientation_enum(self, orientation: str):
+        match orientation:
+            case "horizontal":
+                return Gtk.Orientation.HORIZONTAL
+            case "vertical":
+                return Gtk.Orientation.VERTICAL
+            case other:
+                raise ValueError(f"orientation value of {other} is not supported")
 
     def _get_align_enum(self, value):
         match value:

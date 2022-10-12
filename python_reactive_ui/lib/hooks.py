@@ -23,5 +23,5 @@ def use_effect(component: Component, callback: Callable, deps: List):
         or component._effects[component._effect_counter][0] != deps
     ):
         component._effects[component._effect_counter] = (deps, callback)
-        callback()
+        component._enqueue_operation(callback)
     component._effect_counter += 1

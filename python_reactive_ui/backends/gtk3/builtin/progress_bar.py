@@ -20,9 +20,18 @@ class ProgressBar(Gtk3BuiltinComponent):
         self.gtk_widget.set_fraction(
             new_props["fraction"] if "fraction" in new_props else 0.5
         )
+        self._update_prop_with_default(
+            new_props, "text", None, self.gtk_widget.set_text
+        )
+        self._update_prop_with_default(
+            new_props, "show_text", False, self.gtk_widget.set_show_text
+        )
+        self._update_prop_with_default(
+            new_props, "inverted", False, self.gtk_widget.set_inverted
+        )
 
     def _receive_children(self, new_children: Children):
         pass
 
-    def _dismount_node(self):
+    def _dismount(self):
         self._dismounter(self.gtk_widget)

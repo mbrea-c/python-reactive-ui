@@ -1,5 +1,6 @@
 from enum import Enum, auto
-from typing import Callable, Dict, List, Optional, Tuple
+from collections import deque
+from typing import Callable, Deque, Dict, List, Optional, Tuple
 from itertools import zip_longest
 import inspect
 
@@ -56,6 +57,7 @@ class Component:
         # Other
         self._print_on_render = False
         self._is_mounted = False
+        self._queued_operations: Deque = deque()
 
     def _init_params(
         self,
@@ -75,6 +77,14 @@ class Component:
 
     def __str__(self):
         return f"<{type(self).__name__}>"
+
+    def _enqueue_operation(self, operation: Callable):
+        self._queued_operations.append(operation)
+
+    def _run_operations(self):
+        while self._queued_operations:
+            op = self._queued_operations.popleft()
+            op()
 
     def render(self) -> "Component":
         if self._print_on_render:
@@ -103,6 +113,8 @@ class Component:
             new_element = self.render()
             actions = self._compare(self._render_result, new_element)
             self._perform_actions(actions, mounter, dismounter)  # type: ignore
+
+        self._run_operations()
 
     def _compare_children(
         self,
@@ -212,6 +224,7 @@ class Component:
         self._pre_mount()
         self._mount()
         self._post_mount()
+        self._run_operations()
 
     def _pre_mount(self):
         pass
